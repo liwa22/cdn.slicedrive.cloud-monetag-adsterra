@@ -1,22 +1,40 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <!-- Google tag (gtag.jss) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2EMZHLZYX6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-2EMZHLZYX6');
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CDN.SLICEDRIVE.CLOUD</title>
+
+<title>CDN2.SLICEDRIVE.CLOUD</title>
+
 <style>
-body{margin:0;background:#000}
-video{width:100%;height:100vh;object-fit:contain;background:#000}
-#title{position:absolute;top:10px;left:10px;color:#fff;font-size:14px}
+
+body{
+margin:0;
+background:#000;
+overflow:hidden;
+}
+
+video{
+width:100%;
+height:100vh;
+object-fit:contain;
+background:#000;
+}
+
+#error{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+color:white;
+font-family:sans-serif;
+font-size:18px;
+text-align:center;
+display:none;
+padding:20px;
+}
+
 </style>
 
 <script src="https://countyrecyclefailed.com/df/e4/73/dfe473d375e98f01070d5f58d8b8ae13.js"></script>
@@ -25,59 +43,176 @@ video{width:100%;height:100vh;object-fit:contain;background:#000}
 
 <body>
 
-<video id="player" controls playsinline controlsList="nodownload">
-  <source src="" type="video/mp4">
+<video
+id="player"
+controls
+playsinline
+controlsList="nodownload noremoteplayback"
+disablePictureInPicture>
 </video>
 
+<div id="error"></div>
+
 <script>
-const JSON_URL = "videos.json";
-const DIRECT_LINK = "https://omg10.com/4/11072185";
+
+// =====================================
+// JSON REPOSITORY
+// =====================================
+
+const JSON_URL =
+"https://raw.githubusercontent.com/liwa22/cdn2.slicedrive.cloud-terapop/refs/heads/main/videos.json";
+
+// =====================================
+// DIRECT LINK
+// =====================================
+
+const DIRECT_LINK =
+"https://omg10.com/4/11072185";
+
+// =====================================
 
 const video = document.getElementById("player");
+const errorBox = document.getElementById("error");
 
 let clicked = false;
 let redirected = false;
 
-// baca path dari hash atau pathname
-const path = location.hash.slice(1) || location.pathname;
+// =====================================
+// AMBIL PATH VIDEO
+// =====================================
+
+const path =
+location.hash.slice(1) || location.pathname;
 
 const id = decodeURIComponent(
-  path.replace(/^\/+/, '')
+path.replace(/^\/+/, '')
 );
 
+// =====================================
+// CEK ID
+// =====================================
+
+if(!id){
+
+errorBox.style.display = "block";
+errorBox.innerHTML = "ID video tidak ditemukan";
+
+throw new Error("ID kosong");
+
+}
+
+// =====================================
+// FETCH JSON
+// =====================================
+
 fetch(JSON_URL)
-.then(res => res.json())
-.then(data => {
 
-  const vids = data.videos;
+.then(async(res)=>{
 
-  // cari video
-  const selected = vids.find(v => v.id === id);
+if(!res.ok){
 
-  // jika tidak ditemukan
-  if (!selected) {
-    document.body.innerHTML = "<h1 style='color:white'>Video tidak ditemukan</h1>";
-    return;
-  }
+throw new Error("Gagal mengambil JSON");
 
-  video.src = selected.cdn;
+}
+
+return res.json();
+
+})
+
+.then(data=>{
+
+// support dua format:
+// 1. array langsung
+// 2. { videos: [...] }
+
+const vids = Array.isArray(data)
+? data
+: data.videos;
+
+// =====================================
+// CARI VIDEO
+// =====================================
+
+const selected =
+vids.find(v=>v.id===id);
+
+// =====================================
+// VIDEO TIDAK DITEMUKAN
+// =====================================
+
+if(!selected){
+
+errorBox.style.display = "block";
+errorBox.innerHTML = "Video tidak ditemukan";
+
+return;
+
+}
+
+// =====================================
+// SET VIDEO
+// =====================================
+
+video.src = selected.cdn + "#t=1.0";
+
+video.load();
+
+})
+
+.catch(err=>{
+
+console.error(err);
+
+errorBox.style.display = "block";
+errorBox.innerHTML = "Gagal memuat data video";
+
 });
 
-// redirect klik pertama
-video.addEventListener("click", () => {
-  if (!clicked) {
-    clicked = true;
-    window.location.href = DIRECT_LINK;
-  }
-}, { once: true });
+// =====================================
+// REDIRECT KLIK PERTAMA
+// =====================================
 
-// redirect 30 detik
-video.addEventListener("timeupdate", () => {
-  if (!redirected && video.currentTime >= 30){
-    redirected = true;
-    window.location.href = DIRECT_LINK;
-  }
+video.addEventListener("click",()=>{
+
+if(!clicked){
+
+clicked = true;
+
+window.location.href = DIRECT_LINK;
+
+}
+
+},{ once:true });
+
+// =====================================
+// REDIRECT SAAT 30 DETIK
+// =====================================
+
+video.addEventListener("timeupdate",()=>{
+
+if(
+!redirected &&
+video.currentTime >= 30
+){
+
+redirected = true;
+
+window.location.href = DIRECT_LINK;
+
+}
+
 });
+
+// =====================================
+// DISABLE RIGHT CLICK
+// =====================================
+
+document.addEventListener(
+"contextmenu",
+e=>e.preventDefault()
+);
+
 </script>
+
 </body>
 </html>
