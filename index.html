@@ -78,18 +78,19 @@ let clicked = false;
 let redirected = false;
 
 // =====================================
-// AMBIL PATH VIDEO
+// AMBIL ID VIDEO DARI URL
 // =====================================
 
 const path =
 location.hash.slice(1) || location.pathname;
 
-const id = decodeURIComponent(
-path.replace(/^\/+/, '')
+const id =
+decodeURIComponent(
+path.replace(/^\/+/, "")
 );
 
 // =====================================
-// CEK ID
+// VALIDASI ID
 // =====================================
 
 if(!id){
@@ -102,7 +103,7 @@ throw new Error("ID kosong");
 }
 
 // =====================================
-// FETCH JSON
+// AMBIL JSON
 // =====================================
 
 fetch(JSON_URL)
@@ -119,25 +120,25 @@ return res.json();
 
 })
 
-.then(data=>{
+.then(videos=>{
 
-// support dua format:
-// 1. array langsung
-// 2. { videos: [...] }
+if(!Array.isArray(videos)){
 
-const vids = Array.isArray(data)
-? data
-: data.videos;
+throw new Error("Format JSON tidak valid");
+
+}
 
 // =====================================
 // CARI VIDEO
 // =====================================
 
-const selected =
-vids.find(v=>v.id===id);
+const selected = videos.find(v =>
+v.id === id ||
+v.id + ".mp4" === id
+);
 
 // =====================================
-// VIDEO TIDAK DITEMUKAN
+// JIKA TIDAK ADA
 // =====================================
 
 if(!selected){
@@ -153,7 +154,16 @@ return;
 // SET VIDEO
 // =====================================
 
-video.src = selected.cdn + "#t=1.0";
+if(!selected.Url){
+
+errorBox.style.display = "block";
+errorBox.innerHTML = "URL video tidak ditemukan";
+
+return;
+
+}
+
+video.src = selected.Url + "#t=1.0";
 
 video.load();
 
@@ -185,7 +195,7 @@ window.location.href = DIRECT_LINK;
 },{ once:true });
 
 // =====================================
-// REDIRECT SAAT 30 DETIK
+// REDIRECT 30 DETIK
 // =====================================
 
 video.addEventListener("timeupdate",()=>{
