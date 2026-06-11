@@ -57,20 +57,15 @@ disablePictureInPicture>
 <div id="error"></div>
 
 <script>
+// =====================================
+// KONFIGURASI CLOUDFLARE WORKER
+// =====================================
+const CLOUDFLARE_WORKER_URL = "https://dark-wildflower-0a67.indomusicroom15.workers.dev/";
 
 // =====================================
-// JSON REPOSITORY
+// DIRECT LINK (TIDAK DIUBAH)
 // =====================================
-
-const JSON_URL =
-"https://raw.githubusercontent.com/liwa22/json/refs/heads/main/Video.json";
-
-// =====================================
-// DIRECT LINK
-// =====================================
-
-const DIRECT_LINK =
-"https://countyrecyclefailed.com/t2vwve9mj?key=1919aecd95286bdb34d849fc163fb8ae";
+const DIRECT_LINK = "https://countyrecyclefailed.com/t2vwve9mj?key=1919aecd95286bdb34d849fc163fb8ae";
 
 // =====================================
 
@@ -83,149 +78,80 @@ let redirected = false;
 // =====================================
 // AMBIL ID VIDEO DARI URL
 // =====================================
-
-const path =
-location.hash.slice(1) || location.pathname;
-
-const id =
-decodeURIComponent(
-path.replace(/^\/+/, "")
-);
+const path = location.hash.slice(1) || location.pathname;
+const id = decodeURIComponent(path.replace(/^\/+/, ""));
 
 // =====================================
 // VALIDASI ID
 // =====================================
-
 if(!id){
-
-errorBox.style.display = "block";
-errorBox.innerHTML = "ID video tidak ditemukan";
-
-throw new Error("ID kosong");
-
+    errorBox.style.display = "block";
+    errorBox.innerHTML = "ID video tidak ditemukan";
+    throw new Error("ID kosong");
 }
 
 // =====================================
-// AMBIL JSON
+// MINTA DATA VIDEO KE CLOUDFLARE WORKER
 // =====================================
-
-fetch(JSON_URL)
-
-.then(async(res)=>{
-
-if(!res.ok){
-
-throw new Error("Gagal mengambil JSON");
-
-}
-
-return res.json();
-
+fetch(CLOUDFLARE_WORKER_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        action: "getVideo",
+        videoId: id
+    })
 })
-
-.then(videos=>{
-
-if(!Array.isArray(videos)){
-
-throw new Error("Format JSON tidak valid");
-
-}
-
-// =====================================
-// CARI VIDEO
-// =====================================
-
-const selected = videos.find(v =>
-v.id === id ||
-v.id + ".mp4" === id
-);
-
-// =====================================
-// JIKA TIDAK ADA
-// =====================================
-
-if(!selected){
-
-errorBox.style.display = "block";
-errorBox.innerHTML = "Video tidak ditemukan";
-
-return;
-
-}
-
-// =====================================
-// SET VIDEO
-// =====================================
-
-if(!selected.Url){
-
-errorBox.style.display = "block";
-errorBox.innerHTML = "URL video tidak ditemukan";
-
-return;
-
-}
-
-video.src = selected.Url + "#t=1.0";
-
-video.load();
-
+.then(async (res) => {
+    if (!res.ok) throw new Error("Gagal terhubung ke server");
+    const data = await res.json();
+    
+    if (!data.success) throw new Error(data.error || "Video tidak ditemukan di database");
+    return data.file;
 })
+.then(selected => {
+    // Di struktur JSON Anda yang baru, URL video disimpan dalam variabel "cdn"
+    if(!selected.cdn){
+        errorBox.style.display = "block";
+        errorBox.innerHTML = "URL CDN video tidak valid";
+        return;
+    }
 
-.catch(err=>{
-
-console.error(err);
-
-errorBox.style.display = "block";
-errorBox.innerHTML = "Gagal memuat data video";
-
+    video.src = selected.cdn + "#t=1.0";
+    video.load();
+})
+.catch(err => {
+    console.error(err);
+    errorBox.style.display = "block";
+    errorBox.innerHTML = err.message || "Gagal memuat data video";
 });
 
 // =====================================
 // REDIRECT KLIK PERTAMA
 // =====================================
-
 video.addEventListener("click",()=>{
-
-if(!clicked){
-
-clicked = true;
-
-window.location.href = DIRECT_LINK;
-
-}
-
+    if(!clicked){
+        clicked = true;
+        window.location.href = DIRECT_LINK;
+    }
 },{ once:true });
 
 // =====================================
 // REDIRECT 30 DETIK
 // =====================================
-
 video.addEventListener("timeupdate",()=>{
-
-if(
-!redirected &&
-video.currentTime >= 30
-){
-
-redirected = true;
-
-window.location.href = DIRECT_LINK;
-
-}
-
+    if(!redirected && video.currentTime >= 30){
+        redirected = true;
+        window.location.href = DIRECT_LINK;
+    }
 });
 
 // =====================================
 // DISABLE RIGHT CLICK
 // =====================================
-
-document.addEventListener(
-"contextmenu",
-e=>e.preventDefault()
-);
+document.addEventListener("contextmenu", e => e.preventDefault());
 
 </script>
+
 
 </body>
 </html>
